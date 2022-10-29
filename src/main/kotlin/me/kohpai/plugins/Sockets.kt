@@ -20,18 +20,19 @@ fun Application.configureSockets() {
     routing {
         webSocket("/ws") { // websocketSession
             for (frame in incoming) {
-                if (frame is Frame.Text) {
-                    val text = frame.readText()
-                    outgoing.send(Frame.Text("YOU SAID: $text"))
-                    if (text.equals("bye", ignoreCase = true)) {
-                        close(
-                            CloseReason(
-                                CloseReason.Codes.NORMAL,
-                                "Client said BYE"
-                            )
-                        )
-                    }
-                }
+                val message = if (frame is Frame.Text) frame.readText() else ""
+                val chunks = message.split(':')
+                val command = chunks.firstOrNull() ?: ""
+                val response = if (command == "CNT") "successful" else "failed"
+
+                outgoing.send(Frame.Text(response))
+
+                close(
+                    CloseReason(
+                        CloseReason.Codes.NORMAL,
+                        "$response connection"
+                    )
+                )
             }
         }
     }

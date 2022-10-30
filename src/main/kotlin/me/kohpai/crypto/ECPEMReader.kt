@@ -26,6 +26,7 @@ class ECPEMReader {
             val publicKeyFile =
                 File("src/test/resources/ec_public.pem").bufferedReader()
             val publicKeyPem = PEMParser(publicKeyFile).readObject()
+
             return keyConverter.getPublicKey(publicKeyPem as SubjectPublicKeyInfo) as ECPublicKey
         }
     }

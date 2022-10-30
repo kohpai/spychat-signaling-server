@@ -1,4 +1,4 @@
-package me.kohpai
+package me.kohpai.crypto
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import java.security.PrivateKey

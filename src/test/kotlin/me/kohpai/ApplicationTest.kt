@@ -6,6 +6,7 @@ import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.server.testing.*
 import io.ktor.websocket.*
+import me.kohpai.crypto.ECDSAContent
 import me.kohpai.crypto.ECPEMReader
 import java.io.BufferedReader
 import java.io.File

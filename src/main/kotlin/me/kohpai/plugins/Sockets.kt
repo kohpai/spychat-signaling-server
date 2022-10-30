@@ -5,6 +5,8 @@ import io.ktor.server.websocket.*
 import io.ktor.websocket.*
 import java.time.Duration
 import io.ktor.server.application.*
+import me.kohpai.Connection
+import me.kohpai.connections
 import me.kohpai.crypto.ECDSASignature
 import me.kohpai.crypto.ECPEMReader
 import java.io.StringReader
@@ -35,16 +37,18 @@ fun Application.configureSockets() {
 
                 val publicKey =
                     ECPEMReader.readECPublicKey(StringReader(chunks[1]))
-
                 val validSignature = ECDSASignature(
                     Base64
                         .getDecoder()
                         .decode(chunks[2])
                 ).verifyWith(publicKey.encoded, publicKey)
 
-                val response =
-                    if (chunks.first() == "CNT" && validSignature) "successful" else "failed"
+                val validConnection = chunks.first() == "CNT" && validSignature
+                if (validConnection) {
+                    connections.add(Connection(chunks[1], this))
+                }
 
+                val response = if (validConnection) "successful" else "failed"
                 outgoing.send(Frame.Text(response))
 
                 close(

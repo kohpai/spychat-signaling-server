@@ -38,6 +38,8 @@ class ApplicationTest {
         val publicKeyPem = trimPem(publicKeyFile)
         val signature = ECDSAContent(publicKey.encoded).signWith(privateKey)
 
+        assertEquals(0, connections.size)
+
         client.config {
             install(WebSockets)
         }.webSocket("/ws") {
@@ -48,6 +50,8 @@ class ApplicationTest {
                 close(CloseReason(CloseReason.Codes.NORMAL, "Test done"))
             }
         }
+
+        assertEquals(1, connections.size)
     }
 
     @Test

@@ -1,8 +1,10 @@
 - ~~Receive connection with `CNT:my_pub_key:signature` command~~
-- ~~**Verify signature of messages (ECDSA)**~~
-- Verify signature before accepting connections
+- ~~Verify signature of messages (ECDSA)~~
+- ~~**Verify signature before accepting connections**~~
 - Store connections
 - Retrieve connection by public key
 - Receive signaling message with `SGN:your_pub_key:SDP` command
 - Send `SDP` to `your_pub_key`
 - Migrate to message queue (ZeroMQ)
+- Handle malformed commands
+- Handle decoding errors (Base64 and Signature)

@@ -6,6 +6,13 @@ import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.server.testing.*
 import io.ktor.websocket.*
+import me.kohpai.crypto.ECPEMReader
+import java.io.BufferedReader
+import java.io.File
+import java.util.Base64
+import java.util.Date
+import java.util.stream.Collectors
+import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -20,10 +27,20 @@ class ApplicationTest {
 
     @Test
     fun testConnectSuccessful() = testApplication {
+        val publicKeyFile =
+            File("src/test/resources/ec_public.pem").bufferedReader()
+        val privateKeyFile =
+            File("src/test/resources/ec_private.pem").bufferedReader()
+        val publicKey = ECPEMReader.readECPublicKey(publicKeyFile)
+        val privateKey = ECPEMReader.readECPrivateKey(privateKeyFile)
+
+        val publicKeyPem = trimPem(publicKeyFile)
+        val signature = ECDSAContent(publicKey.encoded).signWith(privateKey)
+
         client.config {
             install(WebSockets)
         }.webSocket("/ws") {
-            send("CNT:pub_key:signature")
+            send("CNT:$publicKeyPem:$signature")
             for (frame in incoming) {
                 val text = if (frame is Frame.Text) frame.readText() else ""
                 assertEquals("successful", text)
@@ -33,7 +50,7 @@ class ApplicationTest {
     }
 
     @Test
-    fun testConnectFailed() = testApplication {
+    fun testConnectFailedByCommand() = testApplication {
         client.config {
             install(WebSockets)
         }.webSocket("/ws") {
@@ -45,4 +62,29 @@ class ApplicationTest {
             }
         }
     }
+
+    @Test
+    fun testConnectFailedBySignature() = testApplication {
+        val publicKeyFile =
+            File("src/test/resources/ec_public.pem").bufferedReader()
+        val publicKeyPem = trimPem(publicKeyFile)
+        val randomSignature = Base64
+            .getEncoder()
+            .encodeToString(Random(Date().time.toInt()).nextBytes(80))
+        client.config {
+            install(WebSockets)
+        }.webSocket("/ws") {
+            send("CNT:$publicKeyPem:$randomSignature")
+            for (frame in incoming) {
+                val text = if (frame is Frame.Text) frame.readText() else ""
+                assertEquals("failed", text)
+                close(CloseReason(CloseReason.Codes.NORMAL, "Test done"))
+            }
+        }
+    }
+}
+
+fun trimPem(pem: BufferedReader): String {
+    val lines = pem.lines().map { it.trim() }.collect(Collectors.toList())
+    return lines.slice(1..lines.size - 2).joinToString("")
 }

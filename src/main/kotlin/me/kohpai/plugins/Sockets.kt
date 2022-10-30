@@ -5,9 +5,10 @@ import io.ktor.server.websocket.*
 import io.ktor.websocket.*
 import java.time.Duration
 import io.ktor.server.application.*
-import io.ktor.server.response.*
-import io.ktor.server.request.*
-import io.ktor.server.routing.*
+import me.kohpai.crypto.ECDSASignature
+import me.kohpai.crypto.ECPEMReader
+import java.io.StringReader
+import java.util.Base64
 
 fun Application.configureSockets() {
     install(WebSockets) {
@@ -22,8 +23,27 @@ fun Application.configureSockets() {
             for (frame in incoming) {
                 val message = if (frame is Frame.Text) frame.readText() else ""
                 val chunks = message.split(':')
-                val command = chunks.firstOrNull() ?: ""
-                val response = if (command == "CNT") "successful" else "failed"
+                if (chunks.size != 3) {
+                    close(
+                        CloseReason(
+                            CloseReason.Codes.NORMAL,
+                            "failed connection"
+                        )
+                    )
+                    continue
+                }
+
+                val publicKey =
+                    ECPEMReader.readECPublicKey(StringReader(chunks[1]))
+
+                val validSignature = ECDSASignature(
+                    Base64
+                        .getDecoder()
+                        .decode(chunks[2])
+                ).verifyWith(publicKey.encoded, publicKey)
+
+                val response =
+                    if (chunks.first() == "CNT" && validSignature) "successful" else "failed"
 
                 outgoing.send(Frame.Text(response))
 

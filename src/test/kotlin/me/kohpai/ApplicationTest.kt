@@ -1,20 +1,13 @@
 package me.kohpai
 
 import io.ktor.client.plugins.websocket.*
-import io.ktor.client.plugins.websocket.WebSockets
-import io.ktor.server.routing.*
-import io.ktor.http.*
-import io.ktor.server.websocket.*
-import io.ktor.websocket.*
-import java.time.Duration
-import io.ktor.server.application.*
-import io.ktor.server.response.*
-import io.ktor.server.request.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
-import kotlin.test.*
+import io.ktor.http.*
 import io.ktor.server.testing.*
-import me.kohpai.plugins.*
+import io.ktor.websocket.*
+import kotlin.test.Test
+import kotlin.test.assertEquals
 
 class ApplicationTest {
     @Test

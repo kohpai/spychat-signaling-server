@@ -31,19 +31,22 @@ fun Application.configureSockets() {
                 if (chunks.size != 3) {
                     close(
                         CloseReason(
-                            CloseReason.Codes.NORMAL,
+                            CloseReason.Codes.CANNOT_ACCEPT,
                             "failed connection"
                         )
                     )
                     continue
                 }
 
+                val pem = "-----BEGIN PUBLIC KEY-----\n" +
+                        "${chunks[1]}\n" +
+                        "-----END PUBLIC KEY-----"
                 if (chunks[0] == "CNT") {
-                    connection = handleConnection(chunks[1], chunks[2])
+                    connection = handleConnection(pem, chunks[2])
                 } else {
                     close(
                         CloseReason(
-                            CloseReason.Codes.NORMAL,
+                            CloseReason.Codes.CANNOT_ACCEPT,
                             "failed connection"
                         )
                     )

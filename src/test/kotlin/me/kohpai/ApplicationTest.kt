@@ -6,13 +6,8 @@ import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.server.testing.*
 import io.ktor.websocket.*
-import me.kohpai.crypto.ECDSAContent
-import me.kohpai.crypto.ECPEMReader
-import java.io.BufferedReader
-import java.io.File
 import java.util.Base64
 import java.util.Date
-import java.util.stream.Collectors
 import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -28,15 +23,12 @@ class ApplicationTest {
 
     @Test
     fun testConnectSuccessful() = testApplication {
-        val publicKeyFile =
-            File("src/test/resources/ec_public.pem").bufferedReader()
-        val privateKeyFile =
-            File("src/test/resources/ec_private.pem").bufferedReader()
-        val publicKey = ECPEMReader.readECPublicKey(publicKeyFile)
-        val privateKey = ECPEMReader.readECPrivateKey(privateKeyFile)
-
-        val publicKeyPem = trimPem(publicKeyFile)
-        val signature = ECDSAContent(publicKey.encoded).signWith(privateKey)
+        val publicKeyPem = "MHYwEAYHKoZIzj0CAQYFK4EEACIDYgAEWYsCG1SsWZlYJT8yV" +
+                "1TVJIgkpxTYliWKAgL5Eotx2cX6bAVlX+G4folAl5q6fo/fcq1B4QKaWkHBO" +
+                "DXz5J+yPa1s1gnIwCqxpdo0nqAd9JmEJPxO0oaNTk8nZSnObQVe"
+        val signature = "MGUCMAx/4E4+cTHl8C1/MpaY5UwWhJpive1SS+nEGM34wvfAwnM2" +
+                "wzjIc4Jx/kCasHkc2QIxAJWvTx0jHhyYsB7yxdvSsg+D9DtyLTC4lgsNl5w1" +
+                "bFXhxDigt2Jzqd5M7oX5/3SE5w=="
 
         assertEquals(0, connections.size)
 
@@ -71,12 +63,13 @@ class ApplicationTest {
 
     @Test
     fun testConnectFailedBySignature() = testApplication {
-        val publicKeyFile =
-            File("src/test/resources/ec_public.pem").bufferedReader()
-        val publicKeyPem = trimPem(publicKeyFile)
+        val publicKeyPem = "MHYwEAYHKoZIzj0CAQYFK4EEACIDYgAEWYsCG1SsWZlYJT8yV" +
+                "1TVJIgkpxTYliWKAgL5Eotx2cX6bAVlX+G4folAl5q6fo/fcq1B4QKaWkHBO" +
+                "DXz5J+yPa1s1gnIwCqxpdo0nqAd9JmEJPxO0oaNTk8nZSnObQVe"
         val randomSignature = Base64
             .getEncoder()
             .encodeToString(Random(Date().time.toInt()).nextBytes(80))
+
         client.config {
             install(WebSockets)
         }.webSocket("/ws") {
@@ -88,9 +81,4 @@ class ApplicationTest {
             }
         }
     }
-}
-
-fun trimPem(pem: BufferedReader): String {
-    val lines = pem.lines().map { it.trim() }.collect(Collectors.toList())
-    return lines.slice(1..lines.size - 2).joinToString("")
 }

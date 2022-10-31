@@ -8,7 +8,9 @@ import io.ktor.server.application.*
 import me.kohpai.connections
 import me.kohpai.crypto.ECDSASignature
 import me.kohpai.crypto.ECPEMReader
+import org.bouncycastle.util.encoders.DecoderException
 import java.io.StringReader
+import java.security.SignatureException
 import java.util.Base64
 
 fun Application.configureSockets() {
@@ -59,12 +61,19 @@ suspend fun DefaultWebSocketServerSession.handleConnection(
     publicKeyPem: String,
     signature: String
 ): String? {
-    val publicKey = ECPEMReader.readECPublicKey(StringReader(publicKeyPem))
-    val validSignature = ECDSASignature(
-        Base64
-            .getDecoder()
-            .decode(signature)
-    ).verifyWith(publicKey.encoded, publicKey)
+    val validSignature = try {
+        val publicKey = ECPEMReader.readECPublicKey(StringReader(publicKeyPem))
+
+        ECDSASignature(
+            Base64
+                .getDecoder()
+                .decode(signature)
+        ).verifyWith(publicKey.encoded, publicKey)
+    } catch (e: DecoderException) {
+        false
+    } catch (e: SignatureException) {
+        false
+    }
 
     var connection: String? = null
     var response = "failed"

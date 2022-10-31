@@ -7,7 +7,7 @@
 - Send `SDP` to `your_pub_key`
 - Migrate to message queue (ZeroMQ)
 - Handle malformed commands
-- Handle decoding errors (Base64 and Signature)
+- ~~**Handle decoding errors (Base64 and Signature)**~~
 - Handle duplicate connections (duplicate `CNT` commands)
 - Handle session's closure (when to close)
-- ~~**Remove connection if terminated by client**~~
+- ~~Remove connection if terminated by client~~

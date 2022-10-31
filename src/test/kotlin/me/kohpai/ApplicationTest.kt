@@ -47,11 +47,12 @@ class ApplicationTest {
             for (frame in incoming) {
                 val text = if (frame is Frame.Text) frame.readText() else ""
                 assertEquals("successful", text)
+                assertEquals(1, connections.size)
                 close(CloseReason(CloseReason.Codes.NORMAL, "Test done"))
             }
         }
 
-        assertEquals(1, connections.size)
+        assertEquals(0, connections.size)
     }
 
     @Test

@@ -36,23 +36,16 @@ fun Application.configureSockets() {
                     continue
                 }
 
-                val publicKeyPem = chunks[1]
-                val publicKey =
-                    ECPEMReader.readECPublicKey(StringReader(publicKeyPem))
-                val validSignature = ECDSASignature(
-                    Base64
-                        .getDecoder()
-                        .decode(chunks[2])
-                ).verifyWith(publicKey.encoded, publicKey)
-
-                val validConnection = chunks.first() == "CNT" && validSignature
-                if (validConnection) {
-                    connection = publicKeyPem
-                    connections[publicKeyPem] = this
+                if (chunks[0] == "CNT") {
+                    connection = handleConnection(chunks[1], chunks[2])
+                } else {
+                    close(
+                        CloseReason(
+                            CloseReason.Codes.NORMAL,
+                            "failed connection"
+                        )
+                    )
                 }
-
-                val response = if (validConnection) "successful" else "failed"
-                outgoing.send(Frame.Text(response))
             }
 
             if (connection != null) {
@@ -60,4 +53,27 @@ fun Application.configureSockets() {
             }
         }
     }
+}
+
+suspend fun DefaultWebSocketServerSession.handleConnection(
+    publicKeyPem: String,
+    signature: String
+): String? {
+    val publicKey = ECPEMReader.readECPublicKey(StringReader(publicKeyPem))
+    val validSignature = ECDSASignature(
+        Base64
+            .getDecoder()
+            .decode(signature)
+    ).verifyWith(publicKey.encoded, publicKey)
+
+    var connection: String? = null
+    var response = "failed"
+    if (validSignature) {
+        connection = publicKeyPem
+        response = "successful"
+        connections[connection] = this
+    }
+
+    outgoing.send(Frame.Text(response))
+    return connection
 }

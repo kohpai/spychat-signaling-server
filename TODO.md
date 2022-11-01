@@ -10,4 +10,5 @@
 - Handle duplicate connections (duplicate `CNT` commands)
 - Handle session's closure (when to close)
 - ~~Remove connection if terminated by client~~
-- ~~**Handle signaling an unconnected user**~~
+- ~~Handle signaling an unconnected user~~
+- ~~**Handle unconnected user's attempt to signal**~~

@@ -111,24 +111,29 @@ class ApplicationTest {
                 }
             }
         }
-
     }
 
     @Test
     fun testConnectFailed() = testApplication {
+        val bob = client.config { install(WebSockets) }
         val randomSignature = Base64
             .getEncoder()
             .encodeToString(Random(Date().time.toInt()).nextBytes(80))
 
-        client.config {
-            install(WebSockets)
-        }.webSocket("/ws") {
+        bob.webSocket("/ws") {
             send("CNT:$alicePublicKey:$randomSignature")
-            for (frame in incoming) {
-                val text = if (frame is Frame.Text) frame.readText() else ""
-                assertEquals("failed", text)
-                close(CloseReason(CloseReason.Codes.NORMAL, "done"))
-            }
+            val reason = closeReason.await()
+            assertEquals(
+                CloseReason.Codes.CANNOT_ACCEPT,
+                CloseReason.Codes.values().first { it.code == reason?.code })
+        }
+
+        bob.webSocket("/ws") {
+            send("$alicePublicKey:$bobSignature:SDP")
+            val reason = closeReason.await()
+            assertEquals(
+                CloseReason.Codes.CANNOT_ACCEPT,
+                CloseReason.Codes.values().first { it.code == reason?.code })
         }
     }
 }

@@ -32,7 +32,7 @@ fun Application.configureSockets() {
                     close(
                         CloseReason(
                             CloseReason.Codes.CANNOT_ACCEPT,
-                            "failed connection"
+                            "not connected"
                         )
                     )
                     continue
@@ -40,6 +40,13 @@ fun Application.configureSockets() {
 
                 if (chunks[0] == "CNT") {
                     connection = handleConnection(chunks[1], chunks[2])
+                } else if (connection == null) {
+                    close(
+                        CloseReason(
+                            CloseReason.Codes.CANNOT_ACCEPT,
+                            "not connected"
+                        )
+                    )
                 } else {
                     handleSignaling(chunks[0])
                 }
@@ -73,14 +80,14 @@ suspend fun DefaultWebSocketServerSession.handleConnection(
     }
 
     var connection: String? = null
-    var response = "failed"
     if (validSignature) {
         connection = publicKeyPem
-        response = "successful"
         connections[connection] = this
+        outgoing.send(Frame.Text("successful"))
+    } else {
+        close(CloseReason(CloseReason.Codes.CANNOT_ACCEPT, "invalid signature"))
     }
 
-    outgoing.send(Frame.Text(response))
     return connection
 }
 

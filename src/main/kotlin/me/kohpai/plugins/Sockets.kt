@@ -48,7 +48,7 @@ fun Application.configureSockets() {
                         )
                     )
                 } else {
-                    handleSignaling(chunks[0])
+                    handleSignaling(connection, chunks)
                 }
             }
 
@@ -91,11 +91,14 @@ suspend fun DefaultWebSocketServerSession.handleConnection(
     return connection
 }
 
-suspend fun DefaultWebSocketServerSession.handleSignaling(target: String) {
-    val connection = connections[target]
+suspend fun DefaultWebSocketServerSession.handleSignaling(
+    from: String,
+    packet: List<String>
+) {
+    val connection = connections[packet[0]]
     if (connection != null) {
+        connection.outgoing.send(Frame.Text("$from:${packet[1]}:${packet[2]}"))
         outgoing.send(Frame.Text("request sent"))
-        connection.outgoing.send(Frame.Text("chat requested"))
     } else {
         outgoing.send(Frame.Text("target not found"))
     }

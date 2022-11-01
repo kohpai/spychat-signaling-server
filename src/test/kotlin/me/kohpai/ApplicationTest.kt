@@ -6,6 +6,9 @@ import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.server.testing.*
 import io.ktor.websocket.*
+import kotlinx.coroutines.flow.consumeAsFlow
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.withIndex
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.util.Base64
@@ -34,41 +37,39 @@ class ApplicationTest {
 
     @Test
     fun testConnect() = testApplication {
-        assertEquals(0, connections.size)
-
-        client.config {
-            install(WebSockets)
-        }.webSocket("/ws") {
+        client.config { install(WebSockets) }.webSocket("/ws") {
             send("CNT:$alicePublicKey:$aliceSignature")
             for (frame in incoming) {
                 val text = if (frame is Frame.Text) frame.readText() else ""
                 assertEquals("successful", text)
-                assertEquals(1, connections.size)
                 close(CloseReason(CloseReason.Codes.NORMAL, "done"))
             }
         }
-
-        assertEquals(0, connections.size)
     }
 
     @Test
     fun testSignal() = testApplication {
-        val alice = client.config {
-            install(WebSockets)
-        }
+        val alice = client.config { install(WebSockets) }
         val bob = client.config { install(WebSockets) }
+        val randomData = Base64
+            .getEncoder()
+            .encodeToString(Random(Date().time.toInt()).nextBytes(80))
 
         runBlocking {
             launch {
                 alice.webSocket("/ws") {
                     send("CNT:$alicePublicKey:$aliceSignature")
-                    var counter = 0
-                    for (frame in incoming) {
+                    incoming.consumeAsFlow().withIndex().onEach {
+                        val frame = it.value
                         val text =
                             if (frame is Frame.Text) frame.readText() else ""
-                        if (counter++ == 1) {
-                            assertEquals("chat requested", text)
+
+                        if (it.index == 1) {
                             close(CloseReason(CloseReason.Codes.NORMAL, "done"))
+                            assertEquals(
+                                "$bobPublicKey:$bobSignature:$randomData",
+                                text
+                            )
                         }
                     }
                 }
@@ -76,16 +77,14 @@ class ApplicationTest {
 
             bob.webSocket("/ws") {
                 send("CNT:$bobPublicKey:$bobSignature")
-                var counter = 0
-                for (frame in incoming) {
+                incoming.consumeAsFlow().withIndex().onEach {
+                    val frame = it.value
                     val text = if (frame is Frame.Text) frame.readText() else ""
+                    send("$alicePublicKey:$bobSignature:$randomData")
 
-                    when (counter++) {
-                        0 -> send("$alicePublicKey:$bobSignature:SDP")
-                        1 -> {
-                            assertEquals("request sent", text)
-                            close(CloseReason(CloseReason.Codes.NORMAL, "done"))
-                        }
+                    if (it.index == 1) {
+                        close(CloseReason(CloseReason.Codes.NORMAL, "done"))
+                        assertEquals("request sent", text)
                     }
                 }
             }
@@ -98,15 +97,15 @@ class ApplicationTest {
 
         bob.webSocket("/ws") {
             send("CNT:$bobPublicKey:$bobSignature")
-            var counter = 0
-            for (frame in incoming) {
+            incoming.consumeAsFlow().withIndex().onEach {
+                val frame = it.value
                 val text = if (frame is Frame.Text) frame.readText() else ""
 
-                when (counter++) {
+                when (it.index) {
                     0 -> send("$alicePublicKey:$bobSignature:SDP")
                     1 -> {
-                        assertEquals("target not found", text)
                         close(CloseReason(CloseReason.Codes.NORMAL, "done"))
+                        assertEquals("target not found", text)
                     }
                 }
             }

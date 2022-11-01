@@ -3,12 +3,12 @@
 - ~~Verify signature before accepting connections~~
 - ~~Store connections~~
 - ~~Retrieve connection by public key~~
-- Convert `your_pub_key:my_signature:SDP` to `my_pub_key:my_signature:SDP` (and send)
+- ~~**Convert `your_pub_key:my_signature:SDP` to `my_pub_key:my_signature:SDP` (and send)**~~
 - Migrate to message queue (ZeroMQ)
 - Handle malformed commands
 - ~~Handle decoding errors (Base64 and Signature)~~
 - Handle duplicate connections (duplicate `CNT` commands)
-- Handle session's closure (when to close)
+- ~~**Handle session's closure (when to close)**~~
 - ~~Remove connection if terminated by client~~
 - ~~Handle signaling an unconnected user~~
-- ~~**Handle unconnected user's attempt to signal**~~
+- ~~Handle unconnected user's attempt to signal~~

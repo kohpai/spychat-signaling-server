@@ -18,6 +18,14 @@ application {
     applicationDefaultJvmArgs = listOf("-Dio.ktor.development=$isDevelopment")
 }
 
+ktor {
+    docker {
+        jreVersion.set(io.ktor.plugin.features.JreVersion.JRE_11)
+        localImageName.set("spychat-signaling-server")
+        imageTag.set("0.0.1-preview")
+    }
+}
+
 repositories {
     mavenCentral()
 }

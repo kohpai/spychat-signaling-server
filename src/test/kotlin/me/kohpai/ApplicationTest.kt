@@ -80,17 +80,16 @@ class ApplicationTest {
                 for (frame in incoming) {
                     val text = if (frame is Frame.Text) frame.readText() else ""
 
-                    if (text == "successful") {
-                        send("$alicePublicKey:$bobSignature:SDP")
-                    }
-                    if (counter++ == 1) {
-                        assertEquals("request sent", text)
-                        close(CloseReason(CloseReason.Codes.NORMAL, "done"))
+                    when (counter++) {
+                        0 -> send("$alicePublicKey:$bobSignature:SDP")
+                        1 -> {
+                            assertEquals("request sent", text)
+                            close(CloseReason(CloseReason.Codes.NORMAL, "done"))
+                        }
                     }
                 }
             }
         }
-
     }
 
     @Test
@@ -103,12 +102,12 @@ class ApplicationTest {
             for (frame in incoming) {
                 val text = if (frame is Frame.Text) frame.readText() else ""
 
-                if (text == "successful") {
-                    send("$alicePublicKey:$bobSignature:SDP")
-                }
-                if (counter++ == 1) {
-                    assertEquals("target not found", text)
-                    close(CloseReason(CloseReason.Codes.NORMAL, "done"))
+                when (counter++) {
+                    0 -> send("$alicePublicKey:$bobSignature:SDP")
+                    1 -> {
+                        assertEquals("target not found", text)
+                        close(CloseReason(CloseReason.Codes.NORMAL, "done"))
+                    }
                 }
             }
         }

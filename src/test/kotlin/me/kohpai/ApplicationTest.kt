@@ -33,7 +33,7 @@ class ApplicationTest {
     }
 
     @Test
-    fun testConnectSuccessful() = testApplication {
+    fun testConnect() = testApplication {
         assertEquals(0, connections.size)
 
         client.config {
@@ -52,7 +52,7 @@ class ApplicationTest {
     }
 
     @Test
-    fun testRetrieveConnection() = testApplication {
+    fun testSignal() = testApplication {
         val alice = client.config {
             install(WebSockets)
         }
@@ -94,7 +94,7 @@ class ApplicationTest {
     }
 
     @Test
-    fun testConnectFailedBySignature() = testApplication {
+    fun testConnectFailed() = testApplication {
         val randomSignature = Base64
             .getEncoder()
             .encodeToString(Random(Date().time.toInt()).nextBytes(80))

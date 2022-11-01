@@ -38,18 +38,10 @@ fun Application.configureSockets() {
                     continue
                 }
 
-                val pem = "-----BEGIN PUBLIC KEY-----\n" +
-                        "${chunks[1]}\n" +
-                        "-----END PUBLIC KEY-----"
                 if (chunks[0] == "CNT") {
-                    connection = handleConnection(pem, chunks[2])
+                    connection = handleConnection(chunks[1], chunks[2])
                 } else {
-                    close(
-                        CloseReason(
-                            CloseReason.Codes.CANNOT_ACCEPT,
-                            "failed connection"
-                        )
-                    )
+                    handleSignaling(chunks[0])
                 }
             }
 
@@ -65,7 +57,9 @@ suspend fun DefaultWebSocketServerSession.handleConnection(
     signature: String
 ): String? {
     val validSignature = try {
-        val publicKey = ECPEMReader.readECPublicKey(StringReader(publicKeyPem))
+        val pem =
+            "-----BEGIN PUBLIC KEY-----\n$publicKeyPem\n-----END PUBLIC KEY-----"
+        val publicKey = ECPEMReader.readECPublicKey(StringReader(pem))
 
         ECDSASignature(
             Base64
@@ -88,4 +82,10 @@ suspend fun DefaultWebSocketServerSession.handleConnection(
 
     outgoing.send(Frame.Text(response))
     return connection
+}
+
+suspend fun DefaultWebSocketServerSession.handleSignaling(target: String) {
+    val connection = connections[target]!!
+    outgoing.send(Frame.Text("request sent"))
+    connection.outgoing.send(Frame.Text("chat requested"))
 }

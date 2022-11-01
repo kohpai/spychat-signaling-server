@@ -94,6 +94,28 @@ class ApplicationTest {
     }
 
     @Test
+    fun testSignalFailed() = testApplication {
+        val bob = client.config { install(WebSockets) }
+
+        bob.webSocket("/ws") {
+            send("CNT:$bobPublicKey:$bobSignature")
+            var counter = 0
+            for (frame in incoming) {
+                val text = if (frame is Frame.Text) frame.readText() else ""
+
+                if (text == "successful") {
+                    send("$alicePublicKey:$bobSignature:SDP")
+                }
+                if (counter++ == 1) {
+                    assertEquals("target not found", text)
+                    close(CloseReason(CloseReason.Codes.NORMAL, "done"))
+                }
+            }
+        }
+
+    }
+
+    @Test
     fun testConnectFailed() = testApplication {
         val randomSignature = Base64
             .getEncoder()

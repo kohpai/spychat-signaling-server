@@ -85,7 +85,11 @@ suspend fun DefaultWebSocketServerSession.handleConnection(
 }
 
 suspend fun DefaultWebSocketServerSession.handleSignaling(target: String) {
-    val connection = connections[target]!!
-    outgoing.send(Frame.Text("request sent"))
-    connection.outgoing.send(Frame.Text("chat requested"))
+    val connection = connections[target]
+    if (connection != null) {
+        outgoing.send(Frame.Text("request sent"))
+        connection.outgoing.send(Frame.Text("chat requested"))
+    } else {
+        outgoing.send(Frame.Text("target not found"))
+    }
 }

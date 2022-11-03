@@ -19,11 +19,11 @@ enum class Command {
 data class Packet(
     val cmd: Command,
     val pubKey: String,
-    val data: String? = null,
     @Serializable(with = ZonedDateTimeSerializer::class)
     val signedAt: ZonedDateTime,
     @Serializable(with = ByteArrayBase64Serializer::class)
-    val signature: ByteArray
+    val signature: ByteArray,
+    val data: String? = null,
 )
 
 class ByteArrayBase64Serializer : KSerializer<ByteArray> {

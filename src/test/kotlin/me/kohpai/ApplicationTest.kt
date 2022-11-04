@@ -154,14 +154,32 @@ class ApplicationTest {
     fun testSignalFailed() = testApplication {
         val bob = client.config { install(WebSockets) }
 
+        val now = ZonedDateTime.now()
+
+        val bobConnectPacket = Packet.connect(bobPublicKey, now)
+        val bobConnectJson = Json.encodeToString(bobConnectPacket)
+        val bobConnectSignature = base64Encoder.encodeToString(
+            ECDSAContent(bobConnectJson.toByteArray()).signWith(
+                bobPrivateKey
+            )
+        )
+
+        val bobSignalPacket = Packet.signal(alicePublicKey, "SDP", now)
+        val bobSignalJson = Json.encodeToString(bobSignalPacket)
+        val bobSignalSignature = base64Encoder.encodeToString(
+            ECDSAContent(bobSignalJson.toByteArray()).signWith(
+                bobPrivateKey
+            )
+        )
+
         bob.webSocket("/ws") {
-            send("CNT:$bobPublicKey:$bobSignature")
+            send("$bobConnectJson;$bobConnectSignature")
             incoming.consumeAsFlow().withIndex().onEach {
                 val frame = it.value
                 val text = if (frame is Frame.Text) frame.readText() else ""
 
                 when (it.index) {
-                    0 -> send("$alicePublicKey:$bobSignature:SDP")
+                    0 -> send("$bobSignalJson;$bobSignalSignature")
                     1 -> {
                         close(CloseReason(CloseReason.Codes.NORMAL, "done"))
                         assertEquals("target not found", text)

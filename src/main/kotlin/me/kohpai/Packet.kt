@@ -9,7 +9,6 @@ import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
-import java.util.Base64
 
 enum class Command {
     CNT, SGN
@@ -21,23 +20,15 @@ data class Packet(
     val pubKey: String,
     @Serializable(with = ZonedDateTimeSerializer::class)
     val signedAt: ZonedDateTime,
-    @Serializable(with = ByteArrayBase64Serializer::class)
-    val signature: ByteArray,
     val data: String? = null,
-)
+) {
+    companion object {
+        fun connect(pubKey: String, signedAt: ZonedDateTime) =
+            Packet(Command.CNT, pubKey, signedAt)
 
-class ByteArrayBase64Serializer : KSerializer<ByteArray> {
-    override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor(
-        "me.kohpai.ByteArrayBase64Serializer", PrimitiveKind.STRING
-    )
-
-    override fun deserialize(decoder: Decoder): ByteArray =
-        Base64.getDecoder().decode(decoder.decodeString())
-
-    override fun serialize(encoder: Encoder, value: ByteArray) {
-        encoder.encodeString(Base64.getEncoder().encodeToString(value))
+        fun signal(pubKey: String, data: String, signedAt: ZonedDateTime) =
+            Packet(Command.SGN, pubKey, signedAt, data)
     }
-
 }
 
 class ZonedDateTimeSerializer : KSerializer<ZonedDateTime> {

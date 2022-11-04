@@ -18,7 +18,6 @@ import me.kohpai.crypto.ECPEMReader
 import java.io.File
 import java.security.PrivateKey
 import java.time.ZonedDateTime
-import java.time.format.DateTimeFormatter
 import java.util.Base64
 import java.util.Date
 import kotlin.random.Random
@@ -31,12 +30,8 @@ class ApplicationTest {
 
     private val alicePublicKey =
         "MHYwEAYHKoZIzj0CAQYFK4EEACIDYgAEWYsCG1SsWZlYJT8yV1TVJIgkpxTYliWKAgL5Eotx2cX6bAVlX+G4folAl5q6fo/fcq1B4QKaWkHBODXz5J+yPa1s1gnIwCqxpdo0nqAd9JmEJPxO0oaNTk8nZSnObQVe"
-    private val aliceSignature =
-        "MGUCMAx/4E4+cTHl8C1/MpaY5UwWhJpive1SS+nEGM34wvfAwnM2wzjIc4Jx/kCasHkc2QIxAJWvTx0jHhyYsB7yxdvSsg+D9DtyLTC4lgsNl5w1bFXhxDigt2Jzqd5M7oX5/3SE5w=="
     private val bobPublicKey =
         "MHYwEAYHKoZIzj0CAQYFK4EEACIDYgAEECK5wO0XZQR654QS00UFKxTVNcD72ESaq9JTOtEB8XI3imxIiCHQih7aymBGZESKYKamy8bR9vwiBK87o0IEykFrNkQE5T1lchipihb6tfrhet3CH5C/7z3nJmiFtSu/"
-    private val bobSignature =
-        "MGQCMHAcjskdykriWxwstMhSAmXsVo6pBFGDmLyPxz54D1GThDdDOLECsa4lGZAnel49tAIwTGoQjk3iw3H/bA7EQ2sUncKOJqPxPVwtercmEEYX1DM0LXCmmh1pZtTUdyaRL3CQ"
 
     private val base64Encoder = Base64.getEncoder()
 
@@ -187,25 +182,52 @@ class ApplicationTest {
                 }
             }
         }
+
+        bob.webSocket("/ws") {
+            send("$bobSignalJson;$bobSignalSignature")
+            val reason = closeReason.await()
+            assertEquals(
+                CloseReason.Codes.CANNOT_ACCEPT,
+                CloseReason.Codes.values().first { it.code == reason?.code })
+        }
     }
 
     @Test
     fun testConnectFailed() = testApplication {
-        val bob = client.config { install(WebSockets) }
-        val randomSignature = Base64
-            .getEncoder()
-            .encodeToString(Random(Date().time.toInt()).nextBytes(80))
+        val alice = client.config { install(WebSockets) }
 
-        bob.webSocket("/ws") {
-            send("CNT:$alicePublicKey:$randomSignature")
+        // wrong packet's format
+        alice.webSocket("/ws") {
+            send("test")
             val reason = closeReason.await()
             assertEquals(
                 CloseReason.Codes.CANNOT_ACCEPT,
                 CloseReason.Codes.values().first { it.code == reason?.code })
         }
 
-        bob.webSocket("/ws") {
-            send("$alicePublicKey:$bobSignature:SDP")
+        val now = ZonedDateTime.now()
+        val tomorrow = now.plusDays(1)
+        val packet = Packet.connect(alicePublicKey, tomorrow)
+        val packetJson = Json.encodeToString(packet)
+        val tomorrowSignature = base64Encoder.encodeToString(
+            ECDSAContent(packetJson.toByteArray()).signWith(alicePrivateKey)
+        )
+        // wrong timestamp (should be now)
+        alice.webSocket("/ws") {
+            send("$packetJson;$tomorrowSignature")
+            val reason = closeReason.await()
+            assertEquals(
+                CloseReason.Codes.CANNOT_ACCEPT,
+                CloseReason.Codes.values().first { it.code == reason?.code })
+        }
+
+        val randomSignature = base64Encoder.encodeToString(
+            Random(Date().time.toInt()).nextBytes(80)
+        )
+
+        // wrong signature
+        alice.webSocket("/ws") {
+            send("$packetJson;$randomSignature")
             val reason = closeReason.await()
             assertEquals(
                 CloseReason.Codes.CANNOT_ACCEPT,

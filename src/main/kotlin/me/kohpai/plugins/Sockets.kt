@@ -5,6 +5,7 @@ import io.ktor.server.routing.*
 import io.ktor.server.websocket.*
 import io.ktor.websocket.*
 import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import me.kohpai.Command
 import me.kohpai.Packet
@@ -44,15 +45,17 @@ fun Application.configureSockets() {
                     continue
                 }
 
-                val packet = Json.decodeFromString<Packet>(chunks[0])
+                val json = chunks[0]
+                val packet = Json.decodeFromString<Packet>(json)
+                val signature = chunks[1]
 
                 when (packet.cmd) {
                     Command.CNT -> connection =
-                        handleConnection(packet, chunks[0], chunks[1])
+                        handleConnection(packet, json, signature)
 
                     Command.SGN -> {
                         if (connection != null) {
-                            handleSignaling(connection, chunks)
+                            handleSignaling(connection, packet, signature)
                         } else {
                             close(
                                 CloseReason(
@@ -119,11 +122,14 @@ suspend fun DefaultWebSocketServerSession.handleConnection(
 
 suspend fun DefaultWebSocketServerSession.handleSignaling(
     from: String,
-    packet: List<String>
+    packet: Packet,
+    signature: String,
 ) {
-    val connection = connections[packet[0]]
+    val sending = Packet.signal(from, packet.data!!, packet.signedAt)
+    val sendingJson = Json.encodeToString(sending)
+    val connection = connections[from]
     if (connection != null) {
-        connection.outgoing.send(Frame.Text("$from:${packet[1]}:${packet[2]}"))
+        connection.outgoing.send(Frame.Text("$sendingJson;$signature"))
         outgoing.send(Frame.Text("request sent"))
     } else {
         outgoing.send(Frame.Text("target not found"))

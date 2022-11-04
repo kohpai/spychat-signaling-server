@@ -8,7 +8,9 @@
 - Handle malformed commands
 - ~~Handle decoding errors (Base64 and Signature)~~
 - Handle duplicate connections (duplicate `CNT` commands)
-- ~~**Handle session's closure (when to close)**~~
+- ~~Handle session's closure (when to close)~~
 - ~~Remove connection if terminated by client~~
 - ~~Handle signaling an unconnected user~~
 - ~~Handle unconnected user's attempt to signal~~
+- ~~**Verify identity and intend of connecting user**~~
+- ~~**Verify destination of signaling request**~~

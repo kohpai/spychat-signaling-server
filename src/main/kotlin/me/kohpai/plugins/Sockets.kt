@@ -1,16 +1,22 @@
 package me.kohpai.plugins
 
+import io.ktor.server.application.*
 import io.ktor.server.routing.*
 import io.ktor.server.websocket.*
 import io.ktor.websocket.*
-import java.time.Duration
-import io.ktor.server.application.*
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.Json
+import me.kohpai.Command
+import me.kohpai.Packet
 import me.kohpai.connections
 import me.kohpai.crypto.ECDSASignature
 import me.kohpai.crypto.ECPEMReader
 import org.bouncycastle.util.encoders.DecoderException
 import java.io.StringReader
 import java.security.SignatureException
+import java.time.Duration
+import java.time.ZonedDateTime
+import java.time.temporal.ChronoUnit
 import java.util.Base64
 
 fun Application.configureSockets() {
@@ -27,8 +33,8 @@ fun Application.configureSockets() {
 
             for (frame in incoming) {
                 val message = if (frame is Frame.Text) frame.readText() else ""
-                val chunks = message.split(':')
-                if (chunks.size != 3) {
+                val chunks = message.split(';')
+                if (chunks.size != 2) {
                     close(
                         CloseReason(
                             CloseReason.Codes.CANNOT_ACCEPT,
@@ -38,17 +44,24 @@ fun Application.configureSockets() {
                     continue
                 }
 
-                if (chunks[0] == "CNT") {
-                    connection = handleConnection(chunks[1], chunks[2])
-                } else if (connection == null) {
-                    close(
-                        CloseReason(
-                            CloseReason.Codes.CANNOT_ACCEPT,
-                            "not connected"
-                        )
-                    )
-                } else {
-                    handleSignaling(connection, chunks)
+                val packet = Json.decodeFromString<Packet>(chunks[0])
+
+                when (packet.cmd) {
+                    Command.CNT -> connection =
+                        handleConnection(packet, chunks[0], chunks[1])
+
+                    Command.SGN -> {
+                        if (connection != null) {
+                            handleSignaling(connection, chunks)
+                        } else {
+                            close(
+                                CloseReason(
+                                    CloseReason.Codes.CANNOT_ACCEPT,
+                                    "not connected"
+                                )
+                            )
+                        }
+                    }
                 }
             }
 
@@ -59,10 +72,25 @@ fun Application.configureSockets() {
     }
 }
 
+fun isValidTimeDifference(dateTime: ZonedDateTime): Boolean {
+    val now = ZonedDateTime.now()
+    val diff = ChronoUnit.SECONDS.between(dateTime, now)
+
+    return diff in 0..60
+}
+
 suspend fun DefaultWebSocketServerSession.handleConnection(
-    publicKeyPem: String,
-    signature: String
+    packet: Packet,
+    json: String,
+    signature: String,
 ): String? {
+    val dateTime = packet.signedAt
+    if (!isValidTimeDifference(dateTime)) {
+        close(CloseReason(CloseReason.Codes.CANNOT_ACCEPT, "stale timestamp"))
+        return null
+    }
+
+    val publicKeyPem = packet.pubKey
     val validSignature = try {
         val pem =
             "-----BEGIN PUBLIC KEY-----\n$publicKeyPem\n-----END PUBLIC KEY-----"
@@ -72,23 +100,21 @@ suspend fun DefaultWebSocketServerSession.handleConnection(
             Base64
                 .getDecoder()
                 .decode(signature)
-        ).verifyWith(publicKey.encoded, publicKey)
+        ).verifyWith(json.toByteArray(), publicKey)
     } catch (e: DecoderException) {
         false
     } catch (e: SignatureException) {
         false
     }
 
-    var connection: String? = null
-    if (validSignature) {
-        connection = publicKeyPem
-        connections[connection] = this
-        outgoing.send(Frame.Text("successful"))
-    } else {
+    if (!validSignature) {
         close(CloseReason(CloseReason.Codes.CANNOT_ACCEPT, "invalid signature"))
+        return null
     }
 
-    return connection
+    connections[publicKeyPem] = this
+    outgoing.send(Frame.Text("successful"))
+    return publicKeyPem
 }
 
 suspend fun DefaultWebSocketServerSession.handleSignaling(

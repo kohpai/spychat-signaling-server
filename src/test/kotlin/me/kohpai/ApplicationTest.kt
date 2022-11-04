@@ -11,6 +11,14 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.withIndex
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import me.kohpai.crypto.ECDSAContent
+import me.kohpai.crypto.ECPEMReader
+import java.io.File
+import java.security.PrivateKey
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 import java.util.Base64
 import java.util.Date
 import kotlin.random.Random
@@ -18,6 +26,9 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class ApplicationTest {
+    private var alicePrivateKey: PrivateKey
+    private var bobPrivateKey: PrivateKey
+
     private val alicePublicKey =
         "MHYwEAYHKoZIzj0CAQYFK4EEACIDYgAEWYsCG1SsWZlYJT8yV1TVJIgkpxTYliWKAgL5Eotx2cX6bAVlX+G4folAl5q6fo/fcq1B4QKaWkHBODXz5J+yPa1s1gnIwCqxpdo0nqAd9JmEJPxO0oaNTk8nZSnObQVe"
     private val aliceSignature =
@@ -26,6 +37,18 @@ class ApplicationTest {
         "MHYwEAYHKoZIzj0CAQYFK4EEACIDYgAEECK5wO0XZQR654QS00UFKxTVNcD72ESaq9JTOtEB8XI3imxIiCHQih7aymBGZESKYKamy8bR9vwiBK87o0IEykFrNkQE5T1lchipihb6tfrhet3CH5C/7z3nJmiFtSu/"
     private val bobSignature =
         "MGQCMHAcjskdykriWxwstMhSAmXsVo6pBFGDmLyPxz54D1GThDdDOLECsa4lGZAnel49tAIwTGoQjk3iw3H/bA7EQ2sUncKOJqPxPVwtercmEEYX1DM0LXCmmh1pZtTUdyaRL3CQ"
+
+    private val base64Encoder = Base64.getEncoder()
+
+    init {
+        val aliceKeyFile =
+            File("src/test/resources/alice_ec_private.pem").bufferedReader()
+        alicePrivateKey = ECPEMReader.readECPrivateKey(aliceKeyFile)
+
+        val bobKeyFile =
+            File("src/test/resources/bob_ec_private.pem").bufferedReader()
+        bobPrivateKey = ECPEMReader.readECPrivateKey(bobKeyFile)
+    }
 
     @Test
     fun testRoot() = testApplication {
@@ -37,13 +60,23 @@ class ApplicationTest {
 
     @Test
     fun testConnect() = testApplication {
+        val packet = Packet.connect(alicePublicKey, ZonedDateTime.now())
+        val json = Json.encodeToString(packet)
+        val signature = base64Encoder.encodeToString(
+            ECDSAContent(json.toByteArray()).signWith(alicePrivateKey)
+        )
+
         client.config { install(WebSockets) }.webSocket("/ws") {
-            send("CNT:$alicePublicKey:$aliceSignature")
+            send("$json;$signature")
             for (frame in incoming) {
                 val text = if (frame is Frame.Text) frame.readText() else ""
                 assertEquals("successful", text)
                 close(CloseReason(CloseReason.Codes.NORMAL, "done"))
             }
+            val reason = closeReason.await()
+            assertEquals(
+                CloseReason.Codes.NORMAL,
+                CloseReason.Codes.values().first { it.code == reason?.code })
         }
     }
 

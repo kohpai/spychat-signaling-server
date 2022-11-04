@@ -84,14 +84,32 @@ class ApplicationTest {
     fun testSignal() = testApplication {
         val alice = client.config { install(WebSockets) }
         val bob = client.config { install(WebSockets) }
-        val randomData = Base64
-            .getEncoder()
-            .encodeToString(Random(Date().time.toInt()).nextBytes(80))
+        val randomData = base64Encoder.encodeToString(
+            Random(Date().time.toInt()).nextBytes(80)
+        )
+
+        val now = ZonedDateTime.now()
+
+        val alicePacket = Packet.connect(alicePublicKey, now)
+        val aliceJson = Json.encodeToString(alicePacket)
+        val aliceSignature = base64Encoder.encodeToString(
+            ECDSAContent(aliceJson.toByteArray()).signWith(alicePrivateKey)
+        )
+
+        val bobSignalPacket = Packet.signal(alicePublicKey, randomData, now)
+        val bobSignalJson = Json.encodeToString(bobSignalPacket)
+        val bobSignalSignature = base64Encoder.encodeToString(
+            ECDSAContent(bobSignalJson.toByteArray()).signWith(
+                bobPrivateKey
+            )
+        )
+        val aliceReceivedPacket = Packet.signal(bobPublicKey, randomData, now)
+        val aliceReceivedJson = Json.encodeToString(aliceReceivedPacket)
 
         runBlocking {
             launch {
                 alice.webSocket("/ws") {
-                    send("CNT:$alicePublicKey:$aliceSignature")
+                    send("$aliceJson;$aliceSignature")
                     incoming.consumeAsFlow().withIndex().onEach {
                         val frame = it.value
                         val text =
@@ -100,7 +118,7 @@ class ApplicationTest {
                         if (it.index == 1) {
                             close(CloseReason(CloseReason.Codes.NORMAL, "done"))
                             assertEquals(
-                                "$bobPublicKey:$bobSignature:$randomData",
+                                "$aliceReceivedJson;$bobSignalSignature",
                                 text
                             )
                         }
@@ -108,12 +126,20 @@ class ApplicationTest {
                 }
             }
 
+            val bobConnectPacket = Packet.connect(bobPublicKey, now)
+            val bobConnectJson = Json.encodeToString(bobConnectPacket)
+            val bobConnectSignature = base64Encoder.encodeToString(
+                ECDSAContent(bobConnectJson.toByteArray()).signWith(
+                    bobPrivateKey
+                )
+            )
+
             bob.webSocket("/ws") {
-                send("CNT:$bobPublicKey:$bobSignature")
+                send("$bobConnectJson;$bobConnectSignature")
                 incoming.consumeAsFlow().withIndex().onEach {
                     val frame = it.value
                     val text = if (frame is Frame.Text) frame.readText() else ""
-                    send("$alicePublicKey:$bobSignature:$randomData")
+                    send("$bobSignalJson;$bobSignalSignature")
 
                     if (it.index == 1) {
                         close(CloseReason(CloseReason.Codes.NORMAL, "done"))

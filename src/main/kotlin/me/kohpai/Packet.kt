@@ -7,6 +7,7 @@ import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
+import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
@@ -38,10 +39,11 @@ class ZonedDateTimeSerializer : KSerializer<ZonedDateTime> {
 
     override fun deserialize(decoder: Decoder): ZonedDateTime =
         ZonedDateTime.parse(
-            decoder.decodeString(), DateTimeFormatter.ISO_OFFSET_DATE_TIME
+            decoder.decodeString(),
+            DateTimeFormatter.ISO_INSTANT.withZone(ZoneId.systemDefault())
         )
 
     override fun serialize(encoder: Encoder, value: ZonedDateTime) {
-        encoder.encodeString(value.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME))
+        encoder.encodeString(value.format(DateTimeFormatter.ISO_INSTANT))
     }
 }

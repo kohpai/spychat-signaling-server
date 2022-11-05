@@ -11,7 +11,7 @@ class SerializationTest {
     @Test
     fun testSerializePacket() {
         val now = ZonedDateTime.now()
-        val nowStr = now.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+        val nowStr = now.format(DateTimeFormatter.ISO_INSTANT)
         val pubKey = "my_pub_key"
         val data = "my_data"
         val connectPacket = Packet.connect(pubKey, now)

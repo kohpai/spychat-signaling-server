@@ -21,6 +21,8 @@ import java.time.temporal.ChronoUnit
 import java.util.Base64
 
 fun Application.configureSockets() {
+    val app = this
+
     install(WebSockets) {
         pingPeriod = Duration.ofSeconds(15)
         timeout = Duration.ofSeconds(15)
@@ -71,6 +73,7 @@ fun Application.configureSockets() {
             if (connection != null) {
                 connections.remove(connection)
             }
+            app.log.info("current connections: ${connections.size}")
         }
     }
 }

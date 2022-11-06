@@ -29,9 +29,9 @@ class ApplicationTest {
     private var bobPrivateKey: PrivateKey
 
     private val alicePublicKey =
-        "MHYwEAYHKoZIzj0CAQYFK4EEACIDYgAEWYsCG1SsWZlYJT8yV1TVJIgkpxTYliWKAgL5Eotx2cX6bAVlX+G4folAl5q6fo/fcq1B4QKaWkHBODXz5J+yPa1s1gnIwCqxpdo0nqAd9JmEJPxO0oaNTk8nZSnObQVe"
+        "-----BEGIN PUBLIC KEY-----\nMHYwEAYHKoZIzj0CAQYFK4EEACIDYgAEWYsCG1SsWZlYJT8yV1TVJIgkpxTYliWKAgL5Eotx2cX6bAVlX+G4folAl5q6fo/fcq1B4QKaWkHBODXz5J+yPa1s1gnIwCqxpdo0nqAd9JmEJPxO0oaNTk8nZSnObQVe\n-----END PUBLIC KEY-----"
     private val bobPublicKey =
-        "MHYwEAYHKoZIzj0CAQYFK4EEACIDYgAEECK5wO0XZQR654QS00UFKxTVNcD72ESaq9JTOtEB8XI3imxIiCHQih7aymBGZESKYKamy8bR9vwiBK87o0IEykFrNkQE5T1lchipihb6tfrhet3CH5C/7z3nJmiFtSu/"
+        "-----BEGIN PUBLIC KEY-----\nMHYwEAYHKoZIzj0CAQYFK4EEACIDYgAEECK5wO0XZQR654QS00UFKxTVNcD72ESaq9JTOtEB8XI3imxIiCHQih7aymBGZESKYKamy8bR9vwiBK87o0IEykFrNkQE5T1lchipihb6tfrhet3CH5C/7z3nJmiFtSu/\n-----END PUBLIC KEY-----"
 
     private val base64Encoder = Base64.getEncoder()
 

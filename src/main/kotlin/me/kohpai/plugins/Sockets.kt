@@ -95,9 +95,7 @@ suspend fun DefaultWebSocketServerSession.handleConnection(
 
     val publicKeyPem = packet.pubKey
     val validSignature = try {
-        val pem =
-            "-----BEGIN PUBLIC KEY-----\n$publicKeyPem\n-----END PUBLIC KEY-----"
-        val publicKey = ECPEMReader.readECPublicKey(StringReader(pem))
+        val publicKey = ECPEMReader.readECPublicKey(StringReader(publicKeyPem))
 
         ECDSASignature(
             Base64

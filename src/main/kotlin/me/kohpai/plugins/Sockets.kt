@@ -128,7 +128,7 @@ suspend fun DefaultWebSocketServerSession.handleSignaling(
 ) {
     val sending = Packet.signal(from, packet.data!!, packet.signedAt)
     val sendingJson = Json.encodeToString(sending)
-    val connection = connections[from]
+    val connection = connections[packet.pubKey]
     if (connection != null) {
         connection.outgoing.send(Frame.Text("$sendingJson;$signature"))
         outgoing.send(Frame.Text("request sent"))

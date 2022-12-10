@@ -1,8 +1,4 @@
-val ktor_version: String by project
 val kotlin_version: String by project
-val logback_version: String by project
-val json_version: String by project
-val bc_version: String by project
 
 plugins {
     application
@@ -33,13 +29,13 @@ repositories {
 }
 
 dependencies {
-    implementation("io.ktor:ktor-server-core-jvm:$ktor_version")
-    implementation("io.ktor:ktor-server-websockets-jvm:$ktor_version")
-    implementation("io.ktor:ktor-server-netty-jvm:$ktor_version")
-    implementation("ch.qos.logback:logback-classic:$logback_version")
-    implementation("org.bouncycastle:bcprov-jdk18on:$bc_version")
-    implementation("org.bouncycastle:bcpkix-jdk18on:$bc_version")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$json_version")
-    testImplementation("io.ktor:ktor-server-tests-jvm:$ktor_version")
+    implementation("ch.qos.logback:logback-classic:1.4.5")
+    implementation("org.bouncycastle:bcprov-jdk18on:1.72")
+    implementation("org.bouncycastle:bcpkix-jdk18on:1.72")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.4.1")
+    implementation("io.ktor:ktor-server-core-jvm:2.2.1")
+    implementation("io.ktor:ktor-server-websockets-jvm:2.2.1")
+    implementation("io.ktor:ktor-server-netty-jvm:2.2.1")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version")
+    testImplementation("io.ktor:ktor-server-tests-jvm:2.2.1")
 }

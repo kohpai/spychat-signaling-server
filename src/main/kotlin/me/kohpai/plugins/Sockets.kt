@@ -117,7 +117,7 @@ suspend fun DefaultWebSocketServerSession.handleConnection(
     }
 
     connections[publicKeyPem] = this
-    outgoing.send(Frame.Text("successful"))
+    outgoing.send(Frame.Binary(true, ByteArray(1) { (200).toByte() }))
     return publicKeyPem
 }
 
@@ -131,8 +131,8 @@ suspend fun DefaultWebSocketServerSession.handleSignaling(
     val connection = connections[packet.pubKey]
     if (connection != null) {
         connection.outgoing.send(Frame.Text("$sendingJson;$signature"))
-        outgoing.send(Frame.Text("request sent"))
+        outgoing.send(Frame.Binary(true, ByteArray(1) { (200).toByte() }))
     } else {
-        outgoing.send(Frame.Text("target not found"))
+        outgoing.send(Frame.Binary(true, ByteArray(1) { (404).toByte() }))
     }
 }

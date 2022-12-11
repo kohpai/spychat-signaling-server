@@ -64,8 +64,11 @@ class ApplicationTest {
         client.config { install(WebSockets) }.webSocket("/ws") {
             send("$json;$signature")
             for (frame in incoming) {
-                val text = if (frame is Frame.Text) frame.readText() else ""
-                assertEquals("successful", text)
+                val response =
+                    if (frame is Frame.Binary) frame.readBytes() else ByteArray(
+                        1
+                    ) { (0).toByte() }
+                assertEquals((200).toByte(), response[0])
                 close(CloseReason(CloseReason.Codes.NORMAL, "done"))
             }
             val reason = closeReason.await()
